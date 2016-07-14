@@ -20,25 +20,24 @@ func (pd *polldesp) recycle() {
 	pd.pf = nil
 }
 
-const slotMax = 64 * 2
+const slotMax = 64 * 2 // multiple of cache-line size
 
 type pdslot struct {
 	marks [slotMax]byte
 	pds   [slotMax]polldesp
-	m     sync.Mutex
-	used  int32
-	prev  *pdslot
-	next  *pdslot
+	// TODO lock-free
+	m    sync.Mutex
+	used int32
+	prev *pdslot
+	next *pdslot
 }
 
 func slotadd(head **pdslot, slot *pdslot) {
 	if *head == nil {
-		println("insert:", head, "empty list")
 		slot.prev = slot
 		slot.next = slot
 		*head = slot
 	} else {
-		println("insert:", head, " not empty list")
 		s := *head
 		slot.next = s.next
 		slot.prev = s
@@ -49,13 +48,11 @@ func slotadd(head **pdslot, slot *pdslot) {
 
 func slotremove(head **pdslot, slot *pdslot) {
 	if slot == slot.next {
-		println("remove:", head, "last node")
 		*head = nil
 	} else {
 		slot.next.prev = slot.prev
 		slot.prev.next = slot.next
 		if *head == slot {
-			println("remove:", head, "head node")
 			*head = slot.next
 		}
 	}
